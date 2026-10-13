@@ -1,5 +1,6 @@
 using Entrevista.Api.Modules.Catalog.DTOs;
 using Entrevista.Api.Modules.Catalog.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Entrevista.Api.Modules.Catalog.Controllers;
 
 [ApiController]
-[Route("api/catalog")]
+[Authorize]
+[Route("catalog")]
 public class CatalogController(ImportacionCatalogoService importacion) : ControllerBase
 {
     // POST api/catalog/import
