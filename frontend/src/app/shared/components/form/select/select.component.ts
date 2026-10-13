@@ -19,7 +19,8 @@ export class SelectComponent implements FormValueControl<string> {
   readonly disabled = input(false);
   readonly invalid = input(false);
 
-  readonly id = input<string>('');
+  // No se llama "id": Angular también dejaría ese atributo en el elemento host y el id quedaría duplicado.
+  readonly inputId = input<string>('');
   readonly options = input<Option[]>([]);
   readonly placeholder = input<string>('Selecciona una opción');
   readonly className = input<string>('');

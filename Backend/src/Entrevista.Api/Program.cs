@@ -68,7 +68,10 @@ builder.Services.AddAuthorization();
 
 // Prefijo global: todas las rutas de los controladores quedan bajo /api.
 builder.Services.AddControllers(options =>
-    options.Conventions.Add(new RoutePrefixConvention("api")));
+        options.Conventions.Add(new RoutePrefixConvention("api")))
+    // Errores 400 de validación con mensajes en español (incluye JSON con formato inválido).
+    .ConfigureApiBehaviorOptions(options =>
+        options.InvalidModelStateResponseFactory = ValidacionResponseFactory.Crear);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

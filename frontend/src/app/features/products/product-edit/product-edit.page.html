@@ -20,32 +20,32 @@
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div class="md:col-span-2">
             <app-label for="nombre">Nombre <span class="text-error-500">*</span></app-label>
-            <app-input-field id="nombre" placeholder="Nombre del producto" [formField]="productForm.nombre" />
+            <app-input-field inputId="nombre" placeholder="Nombre del producto" [formField]="productForm.nombre" />
             <app-field-errors [state]="productForm.nombre()" />
           </div>
 
           <div class="md:col-span-2">
             <app-label for="descripcion">Descripción</app-label>
-            <app-text-area id="descripcion" [rows]="5" placeholder="Descripción del producto" [formField]="productForm.descripcion" />
+            <app-text-area inputId="descripcion" [rows]="5" placeholder="Descripción del producto" [formField]="productForm.descripcion" />
             <app-field-errors [state]="productForm.descripcion()" />
           </div>
 
           <div>
             <app-label for="precio">Precio (USD) <span class="text-error-500">*</span></app-label>
-            <app-input-field id="precio" type="number" step="0.01" placeholder="0.00" [formField]="productForm.precio" />
+            <app-input-field inputId="precio" type="number" step="0.01" placeholder="0.00" [formField]="productForm.precio" />
             <app-field-errors [state]="productForm.precio()" />
           </div>
 
           <div>
             <app-label for="stock">Stock <span class="text-error-500">*</span></app-label>
-            <app-input-field id="stock" type="number" step="1" placeholder="0" [formField]="productForm.stock" />
+            <app-input-field inputId="stock" type="number" step="1" placeholder="0" [formField]="productForm.stock" />
             <app-field-errors [state]="productForm.stock()" />
           </div>
 
           <div class="md:col-span-2">
             <app-label for="categoria">Categoría <span class="text-error-500">*</span></app-label>
             <app-select
-              id="categoria"
+              inputId="categoria"
               placeholder="Selecciona una categoría"
               [options]="categoryOptions()"
               [formField]="productForm.categoriaId"

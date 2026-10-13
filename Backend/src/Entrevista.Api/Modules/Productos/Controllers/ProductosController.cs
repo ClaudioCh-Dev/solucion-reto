@@ -1,3 +1,4 @@
+using Entrevista.Api.Common;
 using Entrevista.Api.Modules.Productos.DTOs;
 using Entrevista.Api.Modules.Productos.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -40,7 +41,7 @@ public class ProductosController(ProductoService productos) : ControllerBase
             case ResultadoActualizacion.CategoriaNoExiste:
                 // Mismo formato de error 400 que las validaciones automáticas de [ApiController].
                 ModelState.AddModelError(nameof(dto.CategoriaId), $"No existe una categoría con Id {dto.CategoriaId}.");
-                return ValidationProblem();
+                return ValidacionResponseFactory.Crear(ControllerContext);
             default:
                 return producto!;
         }

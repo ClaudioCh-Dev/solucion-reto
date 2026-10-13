@@ -8,7 +8,7 @@ import { FormValueControl } from '@angular/forms/signals';
   template: `
     <div class="relative">
       <textarea
-        [id]="id()"
+        [id]="inputId()"
         [placeholder]="placeholder()"
         [rows]="rows()"
         [value]="value()"
@@ -33,7 +33,8 @@ export class TextAreaComponent implements FormValueControl<string> {
   readonly disabled = input(false);
   readonly invalid = input(false);
 
-  readonly id = input<string>('');
+  // No se llama "id": Angular también dejaría ese atributo en el elemento host y el id quedaría duplicado.
+  readonly inputId = input<string>('');
   readonly placeholder = input<string>('');
   readonly rows = input(3);
   readonly hint = input<string>('');

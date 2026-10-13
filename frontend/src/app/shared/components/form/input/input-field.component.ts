@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  input,
+  model,
+  output,
+  viewChild,
+} from '@angular/core';
 import { FormValueControl } from '@angular/forms/signals';
 
 /**
@@ -13,10 +23,10 @@ import { FormValueControl } from '@angular/forms/signals';
     <div class="relative">
       <input
         [type]="type()"
-        [id]="id()"
+        [id]="inputId()"
         [name]="name()"
         [placeholder]="placeholder()"
-        [value]="value() ?? ''"
+        #input
         [attr.min]="min()"
         [attr.step]="step()"
         [attr.autocomplete]="autocomplete()"
@@ -24,7 +34,7 @@ import { FormValueControl } from '@angular/forms/signals';
         [readOnly]="readonly()"
         [attr.aria-invalid]="showError()"
         [class]="inputClasses()"
-        (input)="onInput($event)"
+        (input)="onInput()"
         (blur)="touch.emit()"
       />
       @if (hint()) {
@@ -47,7 +57,8 @@ export class InputFieldComponent implements FormValueControl<string | number | n
   readonly invalid = input(false);
 
   readonly type = input<string>('text');
-  readonly id = input<string>('');
+  // No se llama "id": Angular también dejaría ese atributo en el elemento host y el id quedaría duplicado.
+  readonly inputId = input<string>('');
   readonly name = input<string>('');
   readonly placeholder = input<string>('');
   readonly min = input<string | number>();
@@ -74,9 +85,25 @@ export class InputFieldComponent implements FormValueControl<string | number | n
     return `${base} bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:text-white/90 dark:focus:border-brand-400`;
   });
 
-  protected onInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (this.type() !== 'number') this.value.set(input.value);
-    else this.value.set(input.value === '' ? null : input.valueAsNumber);
+  private readonly inputRef = viewChild.required<ElementRef<HTMLInputElement>>('input');
+
+  constructor() {
+    // Modelo → DOM solo si el valor cambió desde fuera (carga, descartar, reset). Si se escribiera
+    // siempre, al teclear "2." (que el navegador informa como vacío) se borraría lo que se está escribiendo.
+    effect(() => {
+      const value = this.value();
+      const element = this.inputRef().nativeElement;
+      if (this.parse(element) !== value) element.value = value == null ? '' : String(value);
+    });
+  }
+
+  protected onInput(): void {
+    this.value.set(this.parse(this.inputRef().nativeElement));
+  }
+
+  /** Con type="number" el valor es number, o null si el campo está vacío o incompleto. */
+  private parse(element: HTMLInputElement): string | number | null {
+    if (this.type() !== 'number') return element.value;
+    return element.value === '' ? null : element.valueAsNumber;
   }
 }
