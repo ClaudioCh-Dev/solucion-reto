@@ -1,4 +1,4 @@
-namespace Entrevista.Api.Modules.Usuarios.Entities;
+namespace Entrevista.Api.Modules.Auth.Entities;
 
 public class Usuario
 {

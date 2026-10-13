@@ -88,7 +88,7 @@ namespace Entrevista.Api.Data.Migrations
                     b.ToTable("Productos", (string)null);
                 });
 
-            modelBuilder.Entity("Entrevista.Api.Modules.Usuarios.Entities.Usuario", b =>
+            modelBuilder.Entity("Entrevista.Api.Modules.Auth.Entities.Usuario", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

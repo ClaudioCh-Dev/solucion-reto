@@ -1,6 +1,6 @@
 using Entrevista.Api.Modules.Categorias.Entities;
 using Entrevista.Api.Modules.Productos.Entities;
-using Entrevista.Api.Modules.Usuarios.Entities;
+using Entrevista.Api.Modules.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Entrevista.Api.Data;

@@ -1,18 +1,18 @@
-using Entrevista.Api.Modules.Productos.DTOs;
-using Entrevista.Api.Modules.Productos.Services;
+using Entrevista.Api.Modules.Catalog.DTOs;
+using Entrevista.Api.Modules.Catalog.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
-namespace Entrevista.Api.Modules.Productos.Controllers;
+namespace Entrevista.Api.Modules.Catalog.Controllers;
 
 [ApiController]
-[Route("api/productos/importar")]
-public class ImportacionProductosController(ImportacionProductosService importacion) : ControllerBase
+[Route("api/catalog")]
+public class CatalogController(ImportacionCatalogoService importacion) : ControllerBase
 {
-    // POST api/productos/importar
-    // Se puede llamar varias veces: solo agrega lo que falta.
-    [HttpPost]
+    // POST api/catalog/import
+    // Importa categorías y productos de FakeStore. Se puede llamar varias veces: solo agrega lo que falta.
+    [HttpPost("import")]
     [ProducesResponseType<ImportacionResultadoDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]

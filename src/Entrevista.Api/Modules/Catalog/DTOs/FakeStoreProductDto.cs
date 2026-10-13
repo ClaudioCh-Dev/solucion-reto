@@ -1,4 +1,4 @@
-namespace Entrevista.Api.Modules.Productos.DTOs;
+namespace Entrevista.Api.Modules.Catalog.DTOs;
 
 // Campos nullables: la API externa puede omitirlos y se validan antes de guardar.
 public record FakeStoreProductDto(

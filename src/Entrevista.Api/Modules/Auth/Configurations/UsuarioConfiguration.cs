@@ -1,8 +1,8 @@
-using Entrevista.Api.Modules.Usuarios.Entities;
+using Entrevista.Api.Modules.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Entrevista.Api.Modules.Usuarios.Configurations;
+namespace Entrevista.Api.Modules.Auth.Configurations;
 
 public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 {

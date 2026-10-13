@@ -27,11 +27,13 @@ ENTREVISTA/
     ├── Properties/
     │   └── launchSettings.json              # Perfiles: dev y prod
     ├── Data/
-    │   └── AppDbContext.cs
+    │   ├── AppDbContext.cs
+    │   └── Migrations/                      # Migraciones de EF Core
     └── Modules/
-        ├── Productos/
+        ├── Auth/                            # Usuarios
+        ├── Catalog/                         # Importación desde FakeStore API (POST api/catalog/import)
         ├── Categorias/
-        └── Usuarios/
+        └── Productos/
 ```
 
 Cada módulo tiene la misma estructura:
@@ -108,14 +110,16 @@ dotnet run --project src/Entrevista.Api --launch-profile dev
 En dev la importación corre sola al arrancar. También se puede lanzar a mano (en cualquier entorno):
 
 ```powershell
-curl -X POST http://localhost:5054/api/productos/importar
+curl -X POST http://localhost:5054/api/catalog/import
 ```
 
-- **200**: resumen con `recibidos`, `importados`, `omitidos` y el motivo de cada omitido (ya existía, datos inválidos, repetido).
+Primero se importan las categorías (`/products/categories`) y luego los productos (`/products`).
+
+- **200**: resumen por separado para `categorias` y `productos`, con `recibidos`, `importados`, `omitidos` y el motivo de cada omitido (ya existía, datos inválidos, repetido, categoría inexistente).
 - **502**: la API no respondió o devolvió datos inválidos. No se guarda nada; se puede reintentar.
 - **409**: otra importación se ejecutó al mismo tiempo. Se puede reintentar.
 
-Reintentar no duplica datos: solo se insertan productos cuyo `ExternalId` no exista.
+Reintentar no duplica datos: solo se insertan categorías cuyo `Nombre` no exista y productos cuyo `ExternalId` no exista.
 
 ## Producción
 
