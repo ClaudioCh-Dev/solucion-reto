@@ -1,0 +1,67 @@
+<app-auth-page-layout>
+  <div class="flex flex-col flex-1">
+    <div class="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
+      <div class="mb-5 sm:mb-8">
+        <h1 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
+          Iniciar sesión
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Ingresa con tu cuenta para ver y editar el catálogo local.
+        </p>
+      </div>
+
+      @if (expired()) {
+        <app-alert
+          class="block mb-6"
+          variant="warning"
+          title="Tu sesión expiró"
+          message="Inicia sesión nuevamente para continuar."
+        />
+      }
+
+      <form (submit)="onSubmit($event)" class="space-y-6" novalidate>
+        <div>
+          <app-label for="email">Correo <span class="text-error-500">*</span></app-label>
+          <app-input-field
+            id="email"
+            type="email"
+            autocomplete="username"
+            placeholder="demo@entrevista.local"
+            [formField]="signInForm.email"
+          />
+          <app-field-errors [state]="signInForm.email()" />
+        </div>
+
+        <div>
+          <app-label for="password">Contraseña <span class="text-error-500">*</span></app-label>
+          <div class="relative">
+            <app-input-field
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="Tu contraseña"
+              className="pe-20"
+              [formField]="signInForm.password"
+            />
+            <button
+              type="button"
+              class="absolute -translate-y-1/2 end-4 top-1/2 text-theme-xs text-body hover:text-heading"
+              (click)="showPassword.set(!showPassword())"
+            >
+              {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+          <app-field-errors [state]="signInForm.password()" />
+        </div>
+
+        @if (error()) {
+          <p class="text-sm text-error-500" role="alert">{{ error() }}</p>
+        }
+
+        <button type="submit" class="w-full btn btn-primary" [disabled]="signInForm().submitting()">
+          {{ signInForm().submitting() ? 'Ingresando…' : 'Ingresar' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</app-auth-page-layout>

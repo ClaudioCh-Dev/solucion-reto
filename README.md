@@ -13,29 +13,30 @@ API REST en **.NET 9** con **Entity Framework Core 9** y **SQL Server**.
 
 ```
 ENTREVISTA/
-├── Entrevista.sln
-├── docker-compose.yml           # SQL Server para desarrollo
-├── docker/
-│   └── sqlserver/
-│       └── init.sql             # Crea la base y el usuario de la app
-└── src/Entrevista.Api/
-    ├── Program.cs
-    ├── appsettings.json                     # Configuración común
-    ├── appsettings.Development.json         # Conexión de desarrollo (Docker)
-    ├── appsettings.Production.json          # Conexión de producción (NO se sube a git)
-    ├── appsettings.Production.example.json  # Plantilla de producción
-    ├── Properties/
-    │   └── launchSettings.json              # Perfiles: dev y prod
-    ├── Common/
-    │   └── RoutePrefixConvention.cs         # Prefijo global /api para todos los controladores
-    ├── Data/
-    │   ├── AppDbContext.cs
-    │   └── Migrations/                      # Migraciones de EF Core
-    └── Modules/
-        ├── Auth/                            # Usuarios
-        ├── Catalog/                         # Importación desde FakeStore API (POST api/catalog/import)
-        ├── Categorias/
-        └── Productos/
+├── frontend/                    # Angular
+└── Backend/
+    ├── Entrevista.sln
+    ├── docker-compose.yml       # SQL Server para desarrollo
+    ├── .config/
+    │   └── dotnet-tools.json    # dotnet-ef como herramienta local
+    └── src/Entrevista.Api/
+        ├── Program.cs
+        ├── appsettings.json                     # Configuración común
+        ├── appsettings.Development.json         # Conexión de desarrollo (Docker)
+        ├── appsettings.Production.json          # Conexión de producción (NO se sube a git)
+        ├── appsettings.Production.example.json  # Plantilla de producción
+        ├── Properties/
+        │   └── launchSettings.json              # Perfiles: dev y prod
+        ├── Common/
+        │   └── RoutePrefixConvention.cs         # Prefijo global /api para todos los controladores
+        ├── Data/
+        │   ├── AppDbContext.cs
+        │   └── Migrations/                      # Migraciones de EF Core
+        └── Modules/
+            ├── Auth/                            # Usuarios
+            ├── Catalog/                         # Importación desde FakeStore API (POST api/catalog/import)
+            ├── Categorias/
+            └── Productos/
 ```
 
 Cada módulo tiene la misma estructura:
@@ -54,6 +55,7 @@ Cada módulo tiene la misma estructura:
 | Tabla | Campos | Restricciones |
 |---|---|---|
 | `Usuarios` | `Id`, `Email`, `PasswordHash` | `Email` único |
+| `RefreshTokens` | `Id`, `UsuarioId`, `TokenHash`, `CreadoEn`, `ExpiraEn`, `RevocadoEn`, `ReemplazadoPorHash` | `TokenHash` único (SHA-256); FK a `Usuarios` (borrado en cascada) |
 | `Categorias` | `Id`, `Nombre` | `Nombre` único |
 | `Productos` | `Id`, `ExternalId`, `Nombre`, `Descripcion`, `Precio`, `Stock`, `CategoriaId`, `ImagenUrl` | `ExternalId` único; `Precio` decimal(18,2); FK a `Categorias` (sin borrado en cascada) |
 
@@ -82,7 +84,7 @@ Si la cadena de conexión no está definida, la app no arranca y muestra un erro
 ### 1. Levantar SQL Server
 
 ```powershell
-docker compose up -d
+docker compose -f Backend/docker-compose.yml up -d
 ```
 
 Esto levanta dos servicios:
@@ -100,7 +102,7 @@ Credenciales de desarrollo:
 ### 2. Ejecutar
 
 ```powershell
-dotnet run --project src/Entrevista.Api --launch-profile dev
+dotnet run --project Backend/src/Entrevista.Api --launch-profile dev
 ```
 
 - API: http://localhost:5054 (en dev solo HTTP, no hace falta certificado)
@@ -115,9 +117,9 @@ La dirección y el uso de HTTPS se configuran en `appsettings.{Entorno}.json`:
 
 Para usar HTTPS en dev: `"Urls": "https://localhost:7022;http://localhost:5054"`, `"ForzarHttps": true` y confiar en el certificado de desarrollo con `dotnet dev-certs https --trust`.
 
-### 3. Autenticación (JWT)
+### 3. Autenticación (access token + refresh token)
 
-Todos los endpoints requieren token excepto `POST /api/auth/login`. Sin token, o con uno inválido o vencido, responden **401**.
+Todos los endpoints requieren access token excepto `login`, `refresh` y `logout`. Sin token, o con uno inválido o vencido, responden **401**.
 
 #### Usuario de demostración
 
@@ -135,42 +137,82 @@ Nunca se guardan en texto plano. Se hashean con `PasswordHasher` de ASP.NET Core
 
 #### Iniciar sesión
 
+Se usan dos tokens:
+
+| | Access token | Refresh token |
+|---|---|---|
+| Qué es | JWT firmado (HMAC-SHA256) | 64 bytes aleatorios (no es un JWT) |
+| Duración | **15 min** (`Jwt:AccessTokenMinutos`) | **7 días** (`Jwt:RefreshTokenDias`) |
+| Cómo viaja | Body de la respuesta → el cliente lo envía en `Authorization: Bearer` | Cookie `refresh_token` (`HttpOnly`, `SameSite=Strict`, solo a `/api/auth`) |
+| Dónde se guarda en el cliente | **Solo en memoria** (se pierde al recargar) | La gestiona el navegador; JavaScript no puede leerla |
+| En el servidor | No se guarda: se valida por firma | Tabla `RefreshTokens`, **solo el hash SHA-256** |
+
 ```powershell
-curl -X POST http://localhost:5054/api/auth/login `
+# -c guarda la cookie del refresh token, -b la envía (igual que el navegador)
+curl -c cookies.txt -X POST http://localhost:5054/api/auth/login `
   -H "Content-Type: application/json" `
   -d '{ "email": "demo@entrevista.local", "password": "Demo#2026" }'
 ```
 
-- **200**: `{ "token": "eyJ...", "expiraEn": "2026-10-13T15:00:00Z" }` (UTC).
+- **200**: `{ "accessToken": "eyJ...", "expiraEn": "2026-10-13T15:00:00Z", "usuario": { "id": 1, "email": "..." } }` + cookie `refresh_token`.
 - **401**: credenciales inválidas. El mensaje es el mismo si el email no existe o la contraseña es incorrecta.
 - **400**: email con formato inválido o contraseña vacía.
 
-El token se envía en cada petición:
+El access token se envía en cada petición:
 
 ```powershell
 curl http://localhost:5054/api/products -H "Authorization: Bearer eyJ..."
 ```
 
-`GET /api/auth/me` devuelve `{ id, email }` del usuario del token; sirve para comprobar si la sesión sigue activa.
+| Endpoint | Qué hace |
+|---|---|
+| `POST /api/auth/refresh` | Con la cookie, devuelve un access token nuevo y **rota** el refresh token (el anterior queda revocado). 401 si no hay cookie, venció o fue revocado |
+| `POST /api/auth/logout` | **Revoca el refresh token en la base** y borra la cookie. Responde 204 |
+| `GET /api/auth/me` | `{ id, email }` del usuario del access token |
+
+```powershell
+curl -b cookies.txt -c cookies.txt -X POST http://localhost:5054/api/auth/refresh
+curl -b cookies.txt -c cookies.txt -X POST http://localhost:5054/api/auth/logout
+```
+
+**Detección de reúso**: si llega un refresh token que ya fue rotado, alguien más lo tiene (robo). Se revocan **todos** los refresh tokens del usuario y hay que volver a iniciar sesión.
+
+#### Cómo lo usa el frontend
+
+- Al cargar la página llama a `/refresh`: si la cookie sigue vigente, recupera la sesión sin pedir credenciales.
+- Renueva el access token un minuto antes de que venza.
+- Si una petición responde 401, llama a `/refresh` y la reintenta una vez. Si falla, vuelve al login con el aviso de sesión expirada.
 
 #### Expiración y cierre de sesión
 
-- El token vence a los **60 minutos** (`Jwt:ExpiracionMinutos`). La tolerancia de reloj está en 0: deja de valer exactamente en `expiraEn`.
-- **No hay revocación ni endpoint de logout.** Cerrar sesión consiste en que el cliente borre el token y vuelva al login.
-- ⚠️ **El token sigue siendo válido hasta que vence**, aunque se haya cerrado sesión: si alguien lo copió antes, puede usarlo hasta `expiraEn`. Por eso la expiración es corta.
+- Al cerrar sesión, el frontend llama a `/logout` (se revoca el refresh token y se borra la cookie), descarta el access token de memoria y vuelve al login.
+- ⚠️ **El access token no se puede revocar**: el que ya se emitió sigue siendo válido hasta que vence (como máximo 15 minutos), aunque se haya cerrado sesión. Por eso su duración es corta. El refresh token, en cambio, deja de servir en el momento del logout.
+- La tolerancia de reloj del access token está en 0: deja de valer exactamente en `expiraEn`.
 
 #### Configuración
 
 | Clave | Dónde | Valor |
 |---|---|---|
-| `Jwt:Issuer`, `Jwt:Audience`, `Jwt:ExpiracionMinutos` | `appsettings.json` | Comunes a todos los entornos |
+| `Jwt:Issuer`, `Jwt:Audience` | `appsettings.json` | Comunes a todos los entornos |
+| `Jwt:AccessTokenMinutos`, `Jwt:RefreshTokenDias` | `appsettings.json` | 15 y 7 por defecto |
 | `Jwt:Key` | `appsettings.{Entorno}.json` | Clave secreta de firma (HMAC-SHA256), **mínimo 32 caracteres** |
+| `Jwt:RefreshCookie` | `appsettings.json`, se puede pisar por perfil | Opciones de la cookie (ver abajo) |
 
-Si falta `Jwt:Key` o es más corta, la app no arranca. La clave de dev es solo para desarrollo; producción debe usar una propia.
+`Jwt:RefreshCookie`:
+
+| Clave | Por defecto | Dev | Qué hace |
+|---|---|---|---|
+| `Nombre` | `refresh_token` | | Nombre de la cookie |
+| `Path` | `/api/auth` | | Solo se envía a refresh y logout, no en cada petición |
+| `HttpOnly` | `true` | | JavaScript no puede leerla (protege ante XSS) |
+| `SameSite` | `Strict` | | `Strict`, `Lax` o `None`. Con `Strict` no se envía desde otros sitios (protege ante CSRF) |
+| `Secure` | `true` | `false` | Solo se envía por HTTPS. En dev se desactiva porque se usa HTTP |
+
+La app no arranca si falta `Jwt:Key`, si es más corta de 32 caracteres, o si `SameSite` es `None` sin `Secure=true` (los navegadores rechazan esa combinación).
 
 ### 4. Importar productos de FakeStore API
 
-En dev la importación corre sola al arrancar (sin token, porque se llama internamente). También se puede lanzar a mano en cualquier entorno, con token:
+En dev la importación corre sola al arrancar (sin token, porque se llama internamente). También se puede lanzar a mano en cualquier entorno, con access token:
 
 ```powershell
 curl -X POST http://localhost:5054/api/catalog/import -H "Authorization: Bearer eyJ..."
@@ -195,7 +237,7 @@ Todos requieren token (sin él: **401**).
 | `PUT` | `/api/products/{id}` | Guardar cambios locales | 200 (producto actualizado), 400, 404 |
 | `GET` | `/api/categories` | Cargar el selector de categorías (ordenadas por nombre) | 200 |
 
-Body del `PUT` (`ExternalId` no se edita):
+Body del `PUT` (`ExternalId` e `ImagenUrl` no se editan):
 
 ```json
 {
@@ -203,12 +245,11 @@ Body del `PUT` (`ExternalId` no se edita):
   "descripcion": "Texto opcional",
   "precio": 109.95,
   "stock": 10,
-  "imagenUrl": "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
   "categoriaId": 1
 }
 ```
 
-Devuelve **400** si algún campo no es válido (nombre vacío o demasiado largo, precio o stock negativos, URL inválida) o si `categoriaId` no existe.
+Devuelve **400** si algún campo no es válido (nombre vacío o solo espacios, demasiado largo, precio o stock negativos), con mensajes en español, o si `categoriaId` no existe.
 
 ## Producción
 
@@ -217,7 +258,7 @@ Devuelve **400** si algún campo no es válido (nombre vacío o demasiado largo,
 Si no existe, copiar la plantilla:
 
 ```powershell
-Copy-Item src/Entrevista.Api/appsettings.Production.example.json src/Entrevista.Api/appsettings.Production.json
+Copy-Item Backend/src/Entrevista.Api/appsettings.Production.example.json Backend/src/Entrevista.Api/appsettings.Production.json
 ```
 
 Editar la conexión con los datos del servidor real y poner una clave JWT propia (mínimo 32 caracteres):
@@ -242,12 +283,14 @@ En producción no se crea el usuario de demostración automáticamente.
 ### 2. Ejecutar
 
 ```powershell
-dotnet run --project src/Entrevista.Api --launch-profile prod
+dotnet run --project Backend/src/Entrevista.Api --launch-profile prod
 ```
 
 Al publicar (`dotnet publish`), el archivo `appsettings.Production.json` se copia junto a la app. En el servidor, la app debe correr con `ASPNETCORE_ENVIRONMENT=Production` (es el valor por defecto si no se define).
 
 ## Comandos útiles
+
+Desde la carpeta `Backend/`:
 
 ```powershell
 docker compose up -d          # Levantar SQL Server

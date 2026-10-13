@@ -1,0 +1,19 @@
+<div class="min-h-screen xl:flex">
+  <div>
+    <app-sidebar />
+    <app-backdrop />
+  </div>
+  <div
+    class="flex-1 transition-all duration-300 ease-in-out"
+    [class]="{
+      'xl:ms-[290px]': sidebar.isExpanded() || sidebar.isHovered(),
+      'xl:ms-[90px]': !sidebar.isExpanded() && !sidebar.isHovered(),
+      'ms-0': sidebar.isMobileOpen()
+    }"
+  >
+    <app-header />
+    <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+      <router-outlet />
+    </div>
+  </div>
+</div>

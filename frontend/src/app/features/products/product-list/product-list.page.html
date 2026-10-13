@@ -1,0 +1,107 @@
+<app-page-breadcrumb pageTitle="Productos" />
+
+<div class="overflow-hidden panel">
+  <!-- Cabecera -->
+  <div class="px-5 pt-5 sm:px-6 sm:pt-6">
+    <div class="panel-header">
+      <div>
+        <h3 class="panel-title">Catálogo local</h3>
+        <p class="panel-subtitle">
+          @if (products.hasValue()) {
+            {{ products.value().length }} productos
+          } @else {
+            Productos
+          }
+        </p>
+      </div>
+      <button type="button" class="btn btn-outline" [disabled]="products.isLoading()" (click)="products.reload()">
+        <span [innerHTML]="icons.refresh | safeHtml"></span>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage(); as message) {
+    <div class="px-5 pb-5 sm:px-6">
+      <app-alert variant="error" title="No se pudo cargar el catálogo" [message]="message">
+        <button type="button" class="mt-3 btn btn-outline" (click)="products.reload()">Reintentar</button>
+      </app-alert>
+    </div>
+  } @else if (products.isLoading() && products.value().length === 0) {
+    <p class="empty-state">Cargando productos…</p>
+  } @else if (products.value().length === 0) {
+    <p class="empty-state">No hay productos en la base local. Importa el catálogo con POST /api/catalog/import.</p>
+  } @else {
+    <!-- Móvil: tarjetas -->
+    <div class="responsive-list-md" [class.opacity-60]="products.isLoading()">
+      @for (p of products.value(); track p.id) {
+        <a [routerLink]="['/products', p.id]" class="list-card">
+          <div class="list-card-body">
+            <div class="flex items-center gap-3">
+              @if (p.imagenUrl) {
+                <img [src]="p.imagenUrl" [alt]="p.nombre" class="object-contain bg-white thumb h-14 w-14" />
+              } @else {
+                <span class="h-14 w-14 icon-tile" [innerHTML]="icons.image | safeHtml"></span>
+              }
+              <div class="min-w-0">
+                <p class="font-medium line-clamp-2 text-heading">{{ p.nombre }}</p>
+                <app-badge size="sm" color="light">{{ p.categoriaNombre }}</app-badge>
+              </div>
+            </div>
+          </div>
+          <div class="list-card-footer">
+            <span class="font-semibold text-heading">{{ p.precio | currency: 'USD' }}</span>
+            <span class="text-theme-sm" [class.text-error-500]="p.stock === 0">Stock: {{ p.stock }}</span>
+          </div>
+        </a>
+      }
+    </div>
+
+    <!-- Escritorio: tabla -->
+    <div class="responsive-table-md table-wrap" [class.opacity-60]="products.isLoading()">
+      <table class="table-base">
+        <thead class="table-head">
+          <tr>
+            <th class="table-th">Producto</th>
+            <th class="table-th">Categoría</th>
+            <th class="table-th text-end">Precio</th>
+            <th class="table-th text-end">Stock</th>
+            <th class="table-th"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody class="table-body">
+          @for (p of products.value(); track p.id) {
+            <tr class="table-row">
+              <td class="table-td">
+                <div class="flex items-center gap-3">
+                  @if (p.imagenUrl) {
+                    <img [src]="p.imagenUrl" [alt]="p.nombre" class="object-contain bg-white thumb h-12 w-12" loading="lazy" />
+                  } @else {
+                    <span class="h-12 w-12 icon-tile" [innerHTML]="icons.image | safeHtml"></span>
+                  }
+                  <div class="min-w-0">
+                    <a [routerLink]="['/products', p.id]" class="block font-medium truncate max-w-md text-heading hover:underline">
+                      {{ p.nombre }}
+                    </a>
+                    <span class="text-theme-xs">ID externo: {{ p.externalId }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="table-td">
+                <app-badge size="sm" color="light">{{ p.categoriaNombre }}</app-badge>
+              </td>
+              <td class="font-medium table-td text-end text-heading whitespace-nowrap">{{ p.precio | currency: 'USD' }}</td>
+              <td class="table-td text-end" [class.text-error-500]="p.stock === 0">{{ p.stock }}</td>
+              <td class="table-td text-end">
+                <a [routerLink]="['/products', p.id]" class="btn btn-outline">
+                  <span [innerHTML]="icons.edit | safeHtml"></span>
+                  Editar
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
