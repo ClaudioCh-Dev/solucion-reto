@@ -1,5 +1,5 @@
 using Entrevista.Api.Data;
-using Entrevista.Api.Data.Seed;
+using Entrevista.Api.Modules.Productos.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,12 +12,12 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-if (builder.Environment.IsDevelopment())
+builder.Services.AddHttpClient<FakeStoreClient>(client =>
 {
-    builder.Services.AddHttpClient<FakeStoreClient>(client =>
-        client.BaseAddress = new Uri(builder.Configuration["FakeStore:BaseUrl"]!));
-    builder.Services.AddScoped<DevDataSeeder>();
-}
+    client.BaseAddress = new Uri(builder.Configuration["FakeStore:BaseUrl"]!);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddScoped<ImportacionProductosService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -30,10 +30,18 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // En dev: aplica migraciones y carga datos de FakeStore API.
+    // En dev: aplica migraciones e importa productos de FakeStore API.
+    // Si la API falla, la app arranca igual; se puede reintentar con POST api/productos/importar.
     using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
-    await scope.ServiceProvider.GetRequiredService<DevDataSeeder>().SeedAsync();
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<ImportacionProductosService>().ImportarAsync();
+    }
+    catch (FakeStoreException ex)
+    {
+        app.Logger.LogWarning("No se pudo importar desde FakeStore al arrancar: {Mensaje}", ex.Message);
+    }
 }
 
 app.UseHttpsRedirection();

@@ -22,6 +22,6 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.HasOne(p => p.Categoria)
             .WithMany(c => c.Productos)
             .HasForeignKey(p => p.CategoriaId)
-            .OnDelete(DeleteBehavior.Restrict); // Evita eliminar productos si se elimina la categoría
+            .OnDelete(DeleteBehavior.Restrict); // No permite borrar una categoría que tenga productos
     }
 }

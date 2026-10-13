@@ -103,6 +103,20 @@ dotnet run --project src/Entrevista.Api --launch-profile dev
 - HTTPS: https://localhost:7022
 - OpenAPI (solo en dev): http://localhost:5054/openapi/v1.json
 
+### 3. Importar productos de FakeStore API
+
+En dev la importación corre sola al arrancar. También se puede lanzar a mano (en cualquier entorno):
+
+```powershell
+curl -X POST http://localhost:5054/api/productos/importar
+```
+
+- **200**: resumen con `recibidos`, `importados`, `omitidos` y el motivo de cada omitido (ya existía, datos inválidos, repetido).
+- **502**: la API no respondió o devolvió datos inválidos. No se guarda nada; se puede reintentar.
+- **409**: otra importación se ejecutó al mismo tiempo. Se puede reintentar.
+
+Reintentar no duplica datos: solo se insertan productos cuyo `ExternalId` no exista.
+
 ## Producción
 
 ### 1. Crear la configuración
