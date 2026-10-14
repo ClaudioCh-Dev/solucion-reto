@@ -1,10 +1,12 @@
+using Entrevista.Api.Common.Errores;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Entrevista.Api.Common;
 
 // Respuesta 400 de validación (la usan [ApiController] y ValidationProblem()) con textos en español.
 // Si el JSON no se puede leer (ej. "stock": 1.5 o "precio": "abc"), System.Text.Json deja un error
-// técnico en inglés con clave "$.stock": se reemplaza por un mensaje comprensible en el campo "Stock".
+// técnico en inglés con clave "$.stock": se reemplaza por un mensaje comprensible en el campo "stock".
+// Sale con el formato estándar de errores (ErroresEstandarExtensions) y las claves en camelCase, como el JSON.
 public static class ValidacionResponseFactory
 {
     public static ActionResult Crear(ActionContext context)
@@ -19,21 +21,23 @@ public static class ValidacionResponseFactory
                 e => NombreDeCampo(e.Key),
                 _ => new[] { "El valor no tiene un formato válido." })
             : estado.ToDictionary(
-                e => e.Key,
+                e => CamelCase(e.Key),
                 e => e.Value!.Errors.Select(err => err.ErrorMessage).ToArray());
 
         var problema = new ValidationProblemDetails(errores)
         {
-            Title = "Uno o más datos no son válidos.",
-            Status = StatusCodes.Status400BadRequest
+            Title = ErroresApi.Validacion.Titulo,
+            Status = ErroresApi.Validacion.Status
         };
-        return new BadRequestObjectResult(problema);
+        problema.Extensions[ErroresEstandarExtensions.ClaveCodigo] = ErroresApi.Validacion.Codigo;
+        ErroresEstandarExtensions.Completar(problema, context.HttpContext);
+        return ErroresEstandarExtensions.ComoRespuesta(problema);
     }
 
-    // "$.stock" → "Stock"; "$" (cuerpo vacío o JSON mal formado) → "".
-    private static string NombreDeCampo(string clave)
-    {
-        var campo = clave.TrimStart('$', '.');
-        return campo.Length == 0 ? string.Empty : char.ToUpperInvariant(campo[0]) + campo[1..];
-    }
+    // "$.stock" → "stock"; "$" (cuerpo vacío o JSON mal formado) → "".
+    private static string NombreDeCampo(string clave) => CamelCase(clave.TrimStart('$', '.'));
+
+    // "CategoriaId" → "categoriaId"; "Usuario.Email" → "usuario.email".
+    private static string CamelCase(string clave) => string.Join('.', clave.Split('.')
+        .Select(parte => parte.Length == 0 ? parte : char.ToLowerInvariant(parte[0]) + parte[1..]));
 }

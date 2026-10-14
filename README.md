@@ -20,6 +20,10 @@ El frontend solo habla con el backend. El backend es el único que accede a la b
 |---|---|
 | ![Errores de validación](docs/screenshots/3-edicion-errores.png) | ![Cambios guardados](docs/screenshots/4-edicion-guardada.png) |
 
+| API en Scalar: inicio | API en Scalar: editar producto |
+|---|---|
+| ![Scalar: inicio](docs/screenshots/5-scalar-inicio.jpg) | ![Scalar: editar producto](docs/screenshots/6-scalar-editar-producto.jpg) |
+
 ## Requisitos
 
 | Herramienta | Versión usada | Para qué |
@@ -73,6 +77,30 @@ Abre http://localhost:4200. El servidor de desarrollo reenvía `/api/*` al backe
 | Email | Contraseña |
 |---|---|
 | `demo@entrevista.local` | `Demo#2026` |
+
+### 5. OpenAPI y Scalar
+
+Con el backend en ejecución (directo al backend, no por el 4200):
+
+| Qué | URL |
+|---|---|
+| Interfaz para explorar y probar la API ([Scalar](https://scalar.com/)) | http://localhost:5054/scalar |
+| Documento OpenAPI (JSON) | http://localhost:5054/openapi/v1.json |
+
+- Solo existen en desarrollo (`MapOpenApi()` y `MapScalarApiReference()` dentro de `IsDevelopment()` en `Program.cs`); en producción responden 404.
+- Para probar los endpoints protegidos (marcados con *Auth Required*): ejecuta `POST /api/auth/login` con el usuario demo, copia el `accessToken` de la respuesta y pégalo en **Authentication → Bearer Token**. Scalar lo envía como `Authorization: Bearer <token>`. Dura 15 minutos.
+- Cada endpoint tiene resumen, descripción, ejemplos de cuerpo y de respuesta (éxito y cada error) y descripción de cada campo.
+- Esa documentación **no está en los controllers**: cada módulo la define en su propia clase (`Modules/*/OpenApi/*Documentacion.cs`), que se descubre sola al arrancar. La infraestructura (esquema Bearer, transformers, ejemplos comunes) está en `Common/OpenApi/`.
+
+### Puertos
+
+| Servicio | Puerto | Dónde se cambia |
+|---|---|---|
+| Backend (`dev`) | 5054 | `Urls` en `Backend/src/Entrevista.Api/appsettings.Development.json` |
+| Backend (`prod`) | 7022 (HTTPS), 5054 (HTTP) | `applicationUrl` en `Backend/src/Entrevista.Api/Properties/launchSettings.json` |
+| Frontend | 4200 | Por defecto de `ng serve`. Permanente: `"port"` en `serve.options` de `frontend/angular.json`. Una vez: `npm start -- --port 4300` |
+
+Si cambias el puerto del backend, actualiza también `target` en `frontend/proxy.conf.json`.
 
 ## Usuario de demostración
 
@@ -174,6 +202,47 @@ Validaciones en el backend, con mensajes en español por campo (400): nombre obl
 
 Los cambios solo se guardan en la base local; nunca se envían a Fake Store API.
 
+### Formato de errores
+
+**Todos** los errores salen con el mismo formato [ProblemDetails](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`): validaciones, credenciales, token faltante o vencido (el 401 del middleware JWT), recursos o rutas inexistentes, métodos no permitidos y excepciones no controladas.
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "El producto no existe.",
+  "status": 404,
+  "detail": "No existe un producto con Id 999.",
+  "instance": "/api/products/999",
+  "code": "producto_no_encontrado",
+  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00"
+}
+```
+
+| Campo | Qué es |
+|---|---|
+| `title` | Mensaje en español para el usuario |
+| `detail` | Más contexto, cuando lo hay |
+| `code` | Identificador estable del error: el cliente decide con él, no con el texto |
+| `traceId` | Identificador de la petición en el log del servidor |
+| `errors` | Solo en 400: mensajes por campo, claves en camelCase (`{ "precio": ["El precio debe ser mayor o igual a 0."] }`) |
+
+| `code` | Status | Cuándo |
+|---|---|---|
+| `validacion` | 400 | Datos inválidos (ver `errors`) |
+| `no_autenticado` | 401 | Falta el access token, es inválido o venció |
+| `credenciales_invalidas` | 401 | Email o contraseña incorrectos |
+| `sesion_expirada` | 401 | Refresh sin cookie válida |
+| `no_encontrado`, `producto_no_encontrado` | 404 | Ruta o producto inexistente |
+| `metodo_no_permitido` | 405 | Método HTTP no soportado en la ruta |
+| `importacion_en_conflicto` | 409 | Dos importaciones simultáneas |
+| `tipo_no_soportado` | 415 | El cuerpo no es JSON |
+| `error_interno` | 500 | Error inesperado (el detalle solo queda en el log) |
+| `fakestore_no_disponible` | 502 | Fake Store API falló |
+
+**Backend** (`Common/Errores/`): `ErroresApi` es el catálogo único de errores (status, código y título). `AddErroresEstandar()` / `UseErroresEstandar()` en `Program.cs` completan cualquier ProblemDetails (incluidos los que genera ASP.NET) y dan formato a las excepciones y a los errores sin cuerpo. Los controllers responden con `this.Error(ErroresApi.ProductoNoEncontrado, "…")`.
+
+**Frontend** (`core/utils/api-error.ts`): `toUserMessage()` muestra el `detail` o el `title` del backend (en errores 5xx agrega la referencia del `traceId`), `fieldErrors()` pone los `errors` de un 400 en cada campo del formulario y `errorCode()` expone el `code` tipado (`ApiErrorCode`).
+
 ## Modelo de datos
 
 | Tabla | Campos | Restricciones |
@@ -250,7 +319,9 @@ ENTREVISTA/
 │   └── src/Entrevista.Api/
 │       ├── Program.cs                   Configuración, DI, pipeline e inicialización en dev
 │       ├── appsettings*.json
-│       ├── Common/                      Prefijo global /api y respuesta de validación en español
+│       ├── Common/                      Prefijo global /api, validación en español
+│       │   ├── Errores/                 Catálogo de errores y formato ProblemDetails único
+│       │   └── OpenApi/                 Esquema Bearer, Scalar y transformers de la documentación
 │       ├── Data/                        AppDbContext y migraciones
 │       └── Modules/                     Un módulo por funcionalidad:
 │           ├── Auth/                    login, refresh, logout, usuarios y refresh tokens
@@ -268,7 +339,7 @@ ENTREVISTA/
     └── brand/                           Logo original
 ```
 
-Cada módulo del backend separa `Controllers/` (HTTP), `Services/` (reglas de negocio), `Entities/` (tablas), `Configurations/` (mapeo de EF Core: índices, longitudes, relaciones) y `DTOs/` (entrada y salida de la API).
+Cada módulo del backend separa `Controllers/` (HTTP), `Services/` (reglas de negocio), `Entities/` (tablas), `Configurations/` (mapeo de EF Core: índices, longitudes, relaciones), `DTOs/` (entrada y salida de la API) y `OpenApi/` (textos y ejemplos de su documentación).
 
 ## Decisiones técnicas
 

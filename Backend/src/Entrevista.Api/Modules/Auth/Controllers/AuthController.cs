@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Entrevista.Api.Common.Errores;
 using Entrevista.Api.Modules.Auth.DTOs;
 using Entrevista.Api.Modules.Auth.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,7 @@ public class AuthController(AuthService auth, JwtOptions options) : ControllerBa
         var emitida = await auth.LoginAsync(dto, ct);
         if (emitida is null)
             // Mismo mensaje si el email no existe o la contraseña es incorrecta: no revela qué usuarios hay.
-            return Problem(title: "Credenciales inválidas.", statusCode: StatusCodes.Status401Unauthorized);
+            return this.Error(ErroresApi.CredencialesInvalidas);
 
         EscribirCookie(emitida.RefreshToken, emitida.RefreshExpiraEn);
         return emitida.Sesion;
@@ -46,7 +47,7 @@ public class AuthController(AuthService auth, JwtOptions options) : ControllerBa
         if (emitida is null)
         {
             BorrarCookie();
-            return Problem(title: "La sesión expiró. Inicia sesión nuevamente.", statusCode: StatusCodes.Status401Unauthorized);
+            return this.Error(ErroresApi.SesionExpirada);
         }
 
         EscribirCookie(emitida.RefreshToken, emitida.RefreshExpiraEn);

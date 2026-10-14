@@ -1,4 +1,5 @@
 using Entrevista.Api.Common;
+using Entrevista.Api.Common.Errores;
 using Entrevista.Api.Modules.Productos.DTOs;
 using Entrevista.Api.Modules.Productos.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,7 @@ public class ProductosController(ProductoService productos) : ControllerBase
     [ProducesResponseType<ProductoDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProductoDto>> Obtener(int id, CancellationToken ct) =>
-        await productos.ObtenerAsync(id, ct) is { } producto ? producto : NotFound();
+        await productos.ObtenerAsync(id, ct) is { } producto ? producto : ProductoNoEncontrado(id);
 
     // PUT api/products/5
     // Guarda los cambios en la base local. Devuelve el producto actualizado.
@@ -37,7 +38,7 @@ public class ProductosController(ProductoService productos) : ControllerBase
         switch (resultado)
         {
             case ResultadoActualizacion.ProductoNoEncontrado:
-                return NotFound();
+                return ProductoNoEncontrado(id);
             case ResultadoActualizacion.CategoriaNoExiste:
                 // Mismo formato de error 400 que las validaciones automáticas de [ApiController].
                 ModelState.AddModelError(nameof(dto.CategoriaId), $"No existe una categoría con Id {dto.CategoriaId}.");
@@ -46,4 +47,7 @@ public class ProductosController(ProductoService productos) : ControllerBase
                 return producto!;
         }
     }
+
+    private ObjectResult ProductoNoEncontrado(int id) =>
+        this.Error(ErroresApi.ProductoNoEncontrado, $"No existe un producto con Id {id}.");
 }

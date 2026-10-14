@@ -1,5 +1,7 @@
 using System.Text;
 using Entrevista.Api.Common;
+using Entrevista.Api.Common.Errores;
+using Entrevista.Api.Common.OpenApi;
 using Entrevista.Api.Data;
 using Entrevista.Api.Modules.Auth;
 using Entrevista.Api.Modules.Auth.Entities;
@@ -72,15 +74,21 @@ builder.Services.AddControllers(options =>
     // Errores 400 de validación con mensajes en español (incluye JSON con formato inválido).
     .ConfigureApiBehaviorOptions(options =>
         options.InvalidModelStateResponseFactory = ValidacionResponseFactory.Crear);
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+// Todos los errores con el mismo formato ProblemDetails (Common/Errores).
+builder.Services.AddErroresEstandar();
+
+// Documento OpenAPI con el esquema Bearer, textos y ejemplos de cada módulo (Modules/*/OpenApi).
+builder.Services.AddDocumentacionApi();
 
 var app = builder.Build();
+
+app.UseErroresEstandar(); // Primero: así también da formato a los errores de los middlewares siguientes
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapDocumentacionApi(); // /openapi/v1.json y /scalar
 
     // En dev: aplica migraciones, crea el usuario de demostración e importa categorías y productos de FakeStore API.
     // Si la API falla, la app arranca igual; se puede reintentar con POST api/catalog/import.

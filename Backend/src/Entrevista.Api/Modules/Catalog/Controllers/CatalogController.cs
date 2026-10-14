@@ -1,3 +1,4 @@
+using Entrevista.Api.Common.Errores;
 using Entrevista.Api.Modules.Catalog.DTOs;
 using Entrevista.Api.Modules.Catalog.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -26,18 +27,13 @@ public class CatalogController(ImportacionCatalogoService importacion) : Control
         }
         catch (FakeStoreException ex)
         {
-            return Problem(
-                title: "No se pudo importar desde FakeStore API.",
-                detail: $"{ex.Message} No se guardó nada; puede reintentar.",
-                statusCode: StatusCodes.Status502BadGateway);
+            return this.Error(ErroresApi.FakeStoreNoDisponible, $"{ex.Message} No se guardó nada; puede reintentar.");
         }
         catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
         {
             // 2601/2627 = clave duplicada: otra importación simultánea guardó los mismos datos.
-            return Problem(
-                title: "Conflicto al guardar la importación.",
-                detail: "Otra importación se ejecutó al mismo tiempo. No se guardó nada; puede reintentar.",
-                statusCode: StatusCodes.Status409Conflict);
+            return this.Error(ErroresApi.ImportacionEnConflicto,
+                "Otra importación se ejecutó al mismo tiempo. No se guardó nada; puede reintentar.");
         }
     }
 }

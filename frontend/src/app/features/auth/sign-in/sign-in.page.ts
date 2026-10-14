@@ -1,4 +1,3 @@
-import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { email, form, FormField, required, submit } from '@angular/forms/signals';
 import { Router } from '@angular/router';
@@ -56,8 +55,8 @@ export class SignInPage {
         await firstValueFrom(this.auth.login(this.model()));
         await this.router.navigateByUrl('/products');
       } catch (err) {
-        const invalidCredentials = err instanceof HttpErrorResponse && err.status === HttpStatusCode.Unauthorized;
-        this.error.set(invalidCredentials ? 'Correo o contraseña incorrectos.' : toUserMessage(err));
+        // El backend ya manda el texto ("Correo o contraseña incorrectos.", code: credenciales_invalidas).
+        this.error.set(toUserMessage(err));
       }
       return undefined;
     });
