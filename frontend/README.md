@@ -1,4 +1,4 @@
-# Frontend · Tejidos Alma
+# Frontend · Quality Products
 
 Angular 22 (standalone, zoneless, signals) con Tailwind CSS 4. La documentación completa del proyecto está en el [README principal](../README.md).
 

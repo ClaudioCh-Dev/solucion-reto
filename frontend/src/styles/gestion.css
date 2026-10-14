@@ -97,7 +97,7 @@
   @apply flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white/90;
 }
 
-/* Color del logo de Tejidos Alma; en oscuro pasa a blanco para mantener contraste. */
+/* Color del logo de Quality Products; en oscuro pasa a blanco para mantener contraste. */
 @utility text-brand-logo {
   @apply text-logo dark:text-white;
 }

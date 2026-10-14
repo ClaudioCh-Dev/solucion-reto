@@ -31,7 +31,7 @@ public static class OpenApiExtensions
     {
         app.MapOpenApi();
         app.MapScalarApiReference(options => options
-            .WithTitle("Tejidos Alma · API")
+            .WithTitle("Quality Products · API")
             .WithDefaultHttpClient(ScalarTarget.Shell, ScalarClient.Curl)
             .AddPreferredSecuritySchemes(BearerSecuritySchemeTransformer.Esquema));
         return app;

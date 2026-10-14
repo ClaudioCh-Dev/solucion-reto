@@ -20,7 +20,7 @@ public class DocumentacionTransformer(DocumentacionApi docs)
     {
         document.Info = new OpenApiInfo
         {
-            Title = "Tejidos Alma · API del catálogo",
+            Title = "Quality Products · API del catálogo",
             Version = "v1",
             Description = DescripcionGeneral
         };
@@ -154,7 +154,7 @@ public class DocumentacionTransformer(DocumentacionApi docs)
     }
 
     private const string DescripcionGeneral = """
-        API del catálogo de **Tejidos Alma**: autenticación con JWT, importación de productos desde
+        API del catálogo de **Quality Products**: autenticación con JWT, importación de productos desde
         [Fake Store API](https://fakestoreapi.com/docs) y consulta y edición del catálogo guardado en la base local.
 
         ## Cómo probar los endpoints

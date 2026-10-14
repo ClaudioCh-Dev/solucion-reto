@@ -1,4 +1,4 @@
-# Tejidos Alma · Catálogo de productos
+# Quality Products · Catálogo de productos
 
 Aplicación web para iniciar sesión, importar el catálogo de [Fake Store API](https://fakestoreapi.com/docs) y editar los productos guardados en una base de datos local.
 

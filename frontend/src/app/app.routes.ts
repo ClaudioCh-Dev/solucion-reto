@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/guards/auth.guards';
 import { AppLayoutComponent } from './shared/layout/app-layout/app-layout.component';
 
-const titulo = (pagina: string) => `${pagina} | Tejidos Alma`;
+const titulo = (pagina: string) => `${pagina} | Quality Products`;
 
 export const routes: Routes = [
   {
