@@ -48,7 +48,7 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddSingleton<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped<AuthService>();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme) // Autenticación por defecto
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false; // Mantiene los nombres originales de los claims ("sub", "email")
