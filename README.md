@@ -22,7 +22,7 @@ El frontend solo habla con el backend. El backend es el único que accede a la b
 
 | API en Scalar: inicio | API en Scalar: editar producto |
 |---|---|
-| ![Scalar: inicio](docs/screenshots/5-scalar-inicio.jpg) | ![Scalar: editar producto](docs/screenshots/6-scalar-editar-producto.jpg) |
+| ![Scalar: inicio](docs/screenshots/5-scalar-inicio.png) | ![Scalar: editar producto](docs/screenshots/6-scalar-editar-producto.png) |
 
 ## Requisitos
 
